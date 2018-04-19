@@ -49,26 +49,20 @@ void init_interrupts() {
 }
 
 
-void sendU(int numbStrikes) {
-	printf("Number of real strikes: %d\n", numbStrikes);
+void sendToResultAndroid(int numbStrikes, char sensor){
 	char temp[100] = "";
-	sprintf(temp, "U:%u;", numbStrikes);
-	USARTSendString(temp);
+	if(sensor == 'U'){
+		sprintf(temp, "U:%u;", numbStrikes);
+		USARTSendString(temp);
+	} else if (sensor == 'L') {
+		sprintf(temp, "L:%u;", numbStrikes);
+		USARTSendString(temp);
+	} else if (sensor == 'I') {
+		sprintf(temp, "I:%u;", numbStrikes);
+		USARTSendString(temp);
+	}
 }
 
-void sendL(int numbStrikes) {
-	printf("Number of real strikes: %d\n", numbStrikes);
-	char temp[100] = "";
-	sprintf(temp, "L:%u;", numbStrikes);
-	USARTSendString(temp);
-}
-
-void sendI(int numbStrikes) {
-	printf("Number of real strikes: %d\n", numbStrikes);
-	char temp[100] = "";
-	sprintf(temp, "I:%u;", numbStrikes);
-	USARTSendString(temp);
-}
 
 int processData1(int dataTest[], int size){
     int TDS = 0;
@@ -136,14 +130,14 @@ int processData1(int dataTest[], int size){
 
     }
 
-    for(int i = 0; i<BottomStatesCount; i++){
-        printf("Bottom States: %d \n", BottomStates[i]);
-    }
+//    for(int i = 0; i<BottomStatesCount; i++){
+//        printf("Bottom States: %d \n", BottomStates[i]);
+//    }
 
 
-    for(int i = 0; i<TopStatesCount; i++){
-        printf("Top States: %d \n", TopStates[i]);
-    }
+//    for(int i = 0; i<TopStatesCount; i++){
+//        printf("Top States: %d \n", TopStates[i]);
+//    }
 
     int max = -1000;
     for(int c = 0; c < BottomStatesCount; c+=1) {
@@ -162,7 +156,7 @@ int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numbe
     	if(distance < *TDS){
     	      *TDS = distance;
     	 }
-    	printf("TDS Ultrasonic: %d\n", *TDS);
+//    	printf(sensor, *TDS);
 
 
 
@@ -176,10 +170,12 @@ int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numbe
     		if(result != -1000){
     			if(sensor == 'U'){
     				printf("MAX U: %d\n", result);
+    				sendToResultAndroid(result, sensor);
     			}else if(sensor == 'L'){
     				printf("MAX L: %d\n", result);
+    				sendToResultAndroid(result, sensor);
     			}else if(sensor =='I'){
-
+    				sendToResultAndroid(result, sensor);
     			}
     		}
     		*numberOfTDS = 0;
@@ -217,7 +213,7 @@ int main(void) {
     int numberOfTDS_Lazer  = 0;
     int distancesArray_Lazer[100];
 
-    printf("TDS Ultrasonic: %d\n", TDS_Ultrasonic);
+//    printf("TDS Ultrasonic: %d\n", TDS_Ultrasonic);
 //    printf("TDS Lazer: %d\n", TDS_Lazer);
 
 
@@ -228,17 +224,17 @@ int main(void) {
     {
 		Delay_ms(300);
 		int distance = duration/29;
-		printf("%d\n", distance);
+		printf("U: %d\n", distance);
 		Delay_ms(300);
 		getNumberOfStrikes(distance, &TDS_Ultrasonic, &numberOfElements_Ultrasionic, &numberOfTDS_Ultrasonic, distancesArray_Ultrasonic, 0, 'U');
-		Delay_ms(300);
+//		Delay_ms(300);
 
-//		Delay_ms(300);
-//		int distance_Lazer = duration/29;
-//		printf("%d\n", distance);
-//		Delay_ms(300);
-//		getNumberOfStrikes(distance_Lazer, TDS_Lazer, &numberOfElements_Lazer, &numberOfTDS_Lazer, distancesArray_Lazer, 'L');
-//		Delay_ms(300);
+		Delay_ms(300);
+		int distance_Lazer = duration/29;
+		printf("L: %d\n", distance_Lazer);
+		Delay_ms(300);
+		getNumberOfStrikes(distance_Lazer, &TDS_Lazer, &numberOfElements_Lazer, &numberOfTDS_Lazer, distancesArray_Lazer, 0, 'L');
+		Delay_ms(300);
 
 
 //		printf("%d\n", numberOfElements_Ultrasionic);
