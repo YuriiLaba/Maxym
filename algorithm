@@ -11,6 +11,10 @@
 
 volatile uint8_t catcher_status = 0;     //status of echo interuption : 0 - rising edge, 1 - falling edge
 volatile uint16_t duration = 0;
+volatile uint8_t MODE = 0; // 0 - raw data, 1 - strikes
+
+char sensor_Ultrasonic = 'U';
+char sensor_Lazer = 'L';
 
 void Delay_ms(uint32_t ms) {
   volatile uint32_t nCount;
@@ -47,6 +51,24 @@ void init_interrupts() {
 	NVIC_SetPriority(EXTI0_1_IRQn, 1);
 	NVIC_EnableIRQ (EXTI0_1_IRQn);
 }
+
+void USART1_IRQHandler() {
+	if((USART1->ISR & USART_ISR_RXNE) == USART_ISR_RXNE) {//check whether thre is new data in the receive register
+		uint8_t chartoreceive = (uint8_t)(USART1->RDR);//read data from receive register
+		switch(chartoreceive) {
+				case 'M':
+				case 'm':
+					MODE = 1 - MODE;
+					break;
+				default: break;
+			}
+		}
+		else {
+			NVIC_DisableIRQ(USART1_IRQn);
+		}
+
+}
+
 
 
 void sendToResultAndroid(int numbStrikes, char sensor){
@@ -242,9 +264,19 @@ int main(void) {
 		Delay_ms(300);
 		int distance = duration/29;
 		printf("U: %d\n", distance);
-		Delay_ms(300);
-		getNumberOfStrikes(distance, &TDS_Ultrasonic, &numberOfElements_Ultrasionic, &numberOfTDS_Ultrasonic, distancesArray_Ultrasonic, 0, 'U');
-		Delay_ms(300);
+
+		if (MODE == 0) {
+			Delay_ms(300);
+			sendToResultAndroid(distance, sensor_Ultrasonic);
+//			printf("L: %d\n", 100);
+		}
+		else {
+			Delay_ms(300);
+			getNumberOfStrikes(distance, &TDS_Ultrasonic, &numberOfElements_Ultrasionic, &numberOfTDS_Ultrasonic, distancesArray_Ultrasonic, 0, sensor_Ultrasonic);
+			Delay_ms(300);
+		}
+
+
 
 //		Delay_ms(300);
 //		int distance_Lazer = duration/29;
