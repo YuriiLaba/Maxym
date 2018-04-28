@@ -63,20 +63,29 @@ void sendToResultAndroid(int numbStrikes, char sensor){
 	}
 }
 
+struct Data{
+	int BottomStates[100];
+	int BottomStatesCount;
+	int TopStates[100];
+	int TopStatesCount;
+	int max;
+};
 
-int processData1(int dataTest[], int size){
+
+struct Data processData_stateMachine(int dataTest[], int size){
     int TDS = 0;
     int BDS = 1;
     int UP_M = 2;
     int DOWN_M = 3;
 
+    struct Data stateMachine;
+//    parsedData.BottomStates[0] = 3;
+//    printf("Test: %d \n", threeReurnedArgument.BottomStates[0]);
+//    int BottomStates[1000];
+    stateMachine.BottomStatesCount = 0;
 
-    int BottomStates[1000];
-    int BottomStatesCount = 0;
-
-    int TopStates[1000];
-    int TopStatesCount= 0;
-
+//    int TopStates[1000];
+    stateMachine.TopStatesCount = 0;
 
     int cur_state = TDS;
 
@@ -97,27 +106,27 @@ int processData1(int dataTest[], int size){
         else if (cur_state == UP_M) {
             if (prev_dist == dataTest[i]) {
                 cur_state = TDS;
-                TopStates[TopStatesCount] = prev_dist;
-                TopStatesCount +=1;
+                stateMachine.TopStates[stateMachine.TopStatesCount] = prev_dist;
+                stateMachine.TopStatesCount +=1;
             }
             else if(prev_dist < dataTest[i]) {
                 cur_state = DOWN_M;
-                TopStates[TopStatesCount] = prev_dist;
-                TopStatesCount +=1;
+                stateMachine.TopStates[stateMachine.TopStatesCount] = prev_dist;
+                stateMachine.TopStatesCount +=1;
             }
         }
         else if(cur_state == DOWN_M){
             if (prev_dist == dataTest[i]){
                 cur_state = BDS;
 
-                BottomStates[BottomStatesCount] = prev_dist;
-                BottomStatesCount +=1;
+                stateMachine.BottomStates[stateMachine.BottomStatesCount] = prev_dist;
+                stateMachine.BottomStatesCount +=1;
 
 
             } else if(prev_dist > dataTest[i]){
 
-                BottomStates[BottomStatesCount] = prev_dist;
-                BottomStatesCount +=1;
+            	stateMachine.BottomStates[stateMachine.BottomStatesCount] = prev_dist;
+            	stateMachine.BottomStatesCount +=1;
 
                 cur_state = UP_M;
 
@@ -126,8 +135,6 @@ int processData1(int dataTest[], int size){
         }
 
         prev_dist = dataTest[i];
-
-
     }
 
 //    for(int i = 0; i<BottomStatesCount; i++){
@@ -139,14 +146,20 @@ int processData1(int dataTest[], int size){
 //        printf("Top States: %d \n", TopStates[i]);
 //    }
 
-    int max = -1000;
-    for(int c = 0; c < BottomStatesCount; c+=1) {
-        if(BottomStates[c] > max) {
-            max=BottomStates[c];
+    stateMachine.max = -1000;
+    for(int c = 0; c < stateMachine.BottomStatesCount; c+=1) {
+        if(stateMachine.BottomStates[c] > stateMachine.max) {
+        	stateMachine.max = stateMachine.BottomStates[c];
         }
     }
+    return stateMachine;
+}
 
-    return max;
+void sendDeadStates(int listOfStates[], int numberOfElements){
+	for(int i = 0; i < numberOfElements; i++){
+//	    printf("Bottom States: %d \n", BottomStates[i]);
+//		send via USB
+	    }
 }
 
 int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numberOfTDS,int *distancesArray, int lambda, char sensor){
@@ -156,9 +169,6 @@ int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numbe
     	if(distance < *TDS){
     	      *TDS = distance;
     	 }
-//    	printf(sensor, *TDS);
-
-
 
     	if(distance != *TDS){
     		distancesArray[*numberOfElements] = distance;
@@ -166,16 +176,19 @@ int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numbe
 //    		printf("%d\n", *numberOfElements);
     	}
     	if((*numberOfTDS == 5)){
-    		int result = processData1(distancesArray, *numberOfElements);
-    		if(result != -1000){
+    		struct Data stateMachineResult;
+    		stateMachineResult = processData_stateMachine(distancesArray, *numberOfElements);
+//    		printf("TEST: %d\n", 10);
+    		if(stateMachineResult.max != -1000){
     			if(sensor == 'U'){
-    				printf("MAX U: %d\n", result);
-    				sendToResultAndroid(result, sensor);
+    				printf("MAX U: %d\n", stateMachineResult.max);
+    				sendToResultAndroid(stateMachineResult.max, sensor);
+    				sendDeadStates(stateMachineResult.BottomStates, stateMachineResult.BottomStatesCount);
     			}else if(sensor == 'L'){
-    				printf("MAX L: %d\n", result);
-    				sendToResultAndroid(result, sensor);
+    				printf("MAX L: %d\n", stateMachineResult.max);
+    				sendToResultAndroid(stateMachineResult.max, sensor);
     			}else if(sensor =='I'){
-    				sendToResultAndroid(result, sensor);
+    				sendToResultAndroid(stateMachineResult.max, sensor);
     			}
     		}
     		*numberOfTDS = 0;
@@ -187,7 +200,6 @@ int getNumberOfStrikes(int distance, int *TDS, int *numberOfElements, int *numbe
 int main(void) {
 
 	initPorts();
-//	initMotor();
 	init_interrupts();
 	USARTInit();
 	uint8_t dir = 1;  //motor direction
@@ -222,67 +234,28 @@ int main(void) {
 
 	while(1)
     {
+		//Studying Structure
+//		int testList[8] = {3,5,6,7,8,8,4,3};
+//		struct Data X = processData_stateMachine(testList, 8);
+//		printf(X.max);
+
 		Delay_ms(300);
 		int distance = duration/29;
 		printf("U: %d\n", distance);
 		Delay_ms(300);
 		getNumberOfStrikes(distance, &TDS_Ultrasonic, &numberOfElements_Ultrasionic, &numberOfTDS_Ultrasonic, distancesArray_Ultrasonic, 0, 'U');
+		Delay_ms(300);
+
 //		Delay_ms(300);
-
-		Delay_ms(300);
-		int distance_Lazer = duration/29;
-		printf("L: %d\n", distance_Lazer);
-		Delay_ms(300);
-		getNumberOfStrikes(distance_Lazer, &TDS_Lazer, &numberOfElements_Lazer, &numberOfTDS_Lazer, distancesArray_Lazer, 0, 'L');
-		Delay_ms(300);
-
-
-//		printf("%d\n", numberOfElements_Ultrasionic);
-
-
-//		int distancesUltrasonic[100];
-//
-//
+//		int distance_Lazer = duration/29;
+//		printf("L: %d\n", distance_Lazer);
 //		Delay_ms(300);
-//		int distance = duration/29;
-//		printf("%d\n", distance);
-//		if(distance == TDS){
-//			countTDS += 1;
-//        }
-//
-//        if(distance < TDS){
-//            TDS = distance;
-//        }
-////
-//        else if(distance != TDS){
-//            distancesUltrasonic[count] = distance;
-////            printf("%d\n", distance);
-//            count+=1;
-//        }
-//
-//        if((countTDS == 5)){
-//        	//send
-////        	printf("Calculate: %d\n", 1);
-////        	int x = processData(distancesUltrasonic, count);
-//        	printf("Max: %d\n", x);
-//        	if(x != -1000){
-//        		sendU(x);
-//        	}
-////
-//        	countTDS = 0;
-//        	count = 0;
-//        }
-//        printf("countTDS: %d\n", countTDS);
-//
-//    Delay_ms(300);
-//    sendL(150);
-//    Delay_ms(300);
-//    sendI(200);
+//		getNumberOfStrikes(distance_Lazer, &TDS_Lazer, &numberOfElements_Lazer, &numberOfTDS_Lazer, distancesArray_Lazer, 0, 'L');
+//		Delay_ms(300);
 
     }
 	TIM7->DIER &= ~TIM_DIER_UIE;
 	TIM6->DIER &= ~TIM_DIER_UIE;
-
 }
 
 
